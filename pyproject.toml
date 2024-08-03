@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "trajopt-testing"
+version = "0.1.0"
+description = ""
+authors = ["Josh <102478723+realjoshuau@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "trajopt_testing"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sleipnirgroup-jormungandr = "^0.0.1.dev226"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
