@@ -14,6 +14,7 @@ from jormungandr.optimization import OptimizationProblem
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import norm
+from time import time
 
 field_width = 8.2296  # 27 ft -> m
 field_length = 16.4592  # 54 ft -> m
@@ -79,20 +80,39 @@ def f_double(x):
 
 
 def main():
-    # Robot initial state
+    starttime = time()
+    # Robot initial state. i.e the pose3d of the bot
     robot_wrt_field = np.array(
-        [[0.75 * field_length], [field_width / 3.0], [0.0], [1.524], [-1.524], [0.0]]
+        [
+            [0.75 * field_length], 
+            [field_width / 3.0], 
+            [0.0], 
+            [0.0],
+            [0.0],
+            #[1.524], 
+            #[-1.524], 
+            [0.0]
+        ]
     )
 
-    max_initial_velocity = 15.0  # m/s
 
-    shooter_wrt_robot = np.array([[0.0], [0.0], [0.6096], [0.0], [0.0], [0.0]])
+    # we can work backwards from the rps of the shooter wheel to find the max initial velocity
+    rps_of_shooter = 100 # rps
+    max_initial_velocity = 2 * math.pi * 0.1778 * rps_of_shooter
+    print("max initial (linear) velocity is: " + str(max_initial_velocity))
+
+    #max_initial_velocity = 15  # m/s
+    # "note" (the object being fired) is 14in in outer diameter. assuming no compression on the note (i.e it's squished) we can assume the note is 14in in diameter
+    # 14in = 0.3556m
+    print("predicted rps of shooter wheel is: " + str(max_initial_velocity / (2 * math.pi * 0.1778)))
+
+    shooter_wrt_robot = np.array([[0.0], [0.0], [1], [0.0], [0.0], [0.0]])
     shooter_wrt_field = robot_wrt_field + shooter_wrt_robot
 
     problem = OptimizationProblem()
 
     # Set up duration decision variables
-    N = 10
+    N = 20
     T = problem.decision_variable()
     problem.subject_to(T >= 0)
     T.set_value(1)
@@ -152,7 +172,12 @@ def main():
     sensitivity = Gradient(x_k[3, 0], x[3:, :]).get()
     problem.minimize(sensitivity.T @ sensitivity)
 
-    problem.solve(diagnostics=True)
+    problemSolverStatus = problem.solve(diagnostics=True)
+    endTime = time()
+    print(f"[debug] Solver took {endTime - starttime} seconds")
+    print(f"[debug] Solver status: {problemSolverStatus.exit_condition}")
+    print(f"[debug] Solver cost value: {problemSolverStatus.cost}")
+    
 
     # Initial velocity vector
     v0 = x[3:, :].value() - robot_wrt_field[3:, :]
@@ -249,6 +274,7 @@ def main():
     ax.set_zlabel("Z position (m)")
 
     plt.show()
+    plt.savefig("plot.png")
 
 
 if __name__ == "__main__":
